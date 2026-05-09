@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ status }} Error{% endblock %}
+{% block content %}
+<div class="error-page">
+  <h1>{{ status }}</h1>
+  <p>{{ detail }}</p>
+  <a href="/projects" class="btn btn--primary">Back to Projects</a>
+</div>
+{% endblock %}

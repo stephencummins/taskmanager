@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Projects — TaskManager{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Projects</h1>
+  <button class="btn btn--primary" onclick="document.getElementById('new-project-modal').showModal()">
+    + New Project
+  </button>
+</div>
+
+{% if projects %}
+  <div class="grid">
+    {% for p in projects %}
+      <a href="/projects/{{ p.id }}" class="card card--project" style="--accent: {{ p.color }}">
+        <div class="card__dot" style="background: {{ p.color }}"></div>
+        <div class="card__body">
+          <h2 class="card__title">{{ p.name }}</h2>
+          {% if p.description %}
+            <p class="card__desc">{{ p.description }}</p>
+          {% endif %}
+          <span class="badge">{{ p.task_count }} task{% if p.task_count != 1 %}s{% endif %}</span>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="empty">No projects yet. Create one to get started.</p>
+{% endif %}
+
+<!-- New project modal -->
+<dialog id="new-project-modal">
+  <form method="post" action="/projects/new">
+    <h2>New Project</h2>
+    <label>Name <input name="name" required autofocus></label>
+    <label>Description <textarea name="description" rows="2"></textarea></label>
+    <label>Colour
+      <input type="color" name="color" value="#6366f1">
+    </label>
+    <div class="modal-actions">
+      <button type="button" onclick="this.closest('dialog').close()" class="btn">Cancel</button>
+      <button type="submit" class="btn btn--primary">Create</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}

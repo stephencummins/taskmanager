@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}TaskManager{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/app.css') }}">
+</head>
+<body>
+  <nav>
+    <a href="/schedules" class="brand">TaskManager</a>
+    <div class="nav-links">
+      <a href="/projects">Projects</a>
+      <a href="/labels">Labels</a>
+      <a href="/schedules">Schedules</a>
+    </div>
+  </nav>
+
+  <main>
+    {% for flash in flashes %}
+      <div class="flash flash--{{ flash.category }}">{{ flash.message }}</div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

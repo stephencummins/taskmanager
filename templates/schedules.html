@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Schedules{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div class="page-header__left">
+    <h1>⏰ Schedules</h1>
+    <span class="subtitle">pm2 cron jobs and n8n workflows</span>
+  </div>
+  <div class="page-header__actions">
+    <button class="btn btn--primary" onclick="document.getElementById('newJobDialog').showModal()">+ New Job</button>
+  </div>
+</div>
+
+{# ── pm2 cron jobs ─────────────────────────────────────────────────────────── #}
+<section class="section" style="margin-bottom:32px">
+  <h3 style="display:flex;align-items:center;gap:8px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:12px;">
+    pm2 Cron Jobs
+    <span class="kanban__count">{{ pm2_jobs | length }}</span>
+  </h3>
+
+  {% if pm2_jobs %}
+  <div class="schedule-table">
+    <div class="schedule-header">
+      <span>Name</span>
+      <span>Schedule</span>
+      <span>Status</span>
+      <span>Restarts</span>
+      <span>Script</span>
+      <span></span>
+    </div>
+    {% for job in pm2_jobs %}
+    <div class="schedule-row">
+      <span class="schedule-name">{{ job.name }}</span>
+      <span class="schedule-cron"><code>{{ job.cron }}</code></span>
+      <span>
+        <span class="sched-badge sched-badge--{{ job.status }}">{{ job.status }}</span>
+      </span>
+      <span class="schedule-meta">{{ job.restarts }}×</span>
+      <span class="schedule-script" title="{{ job.script }}">{{ job.script | truncate(40, true, '…') }}</span>
+      <span class="schedule-actions">
+        <form method="post" action="/schedules/{{ job.name }}/action" style="display:inline">
+          <input type="hidden" name="_action" value="trigger">
+          <button class="btn btn--sm" title="Run now">▶ Run</button>
+        </form>
+        {% if job.status == 'stopped' %}
+        <form method="post" action="/schedules/{{ job.name }}/action" style="display:inline">
+          <input type="hidden" name="_action" value="enable">
+          <button class="btn btn--sm" title="Enable">Enable</button>
+        </form>
+        {% else %}
+        <form method="post" action="/schedules/{{ job.name }}/action" style="display:inline">
+          <input type="hidden" name="_action" value="disable">
+          <button class="btn btn--sm" title="Disable">Disable</button>
+        </form>
+        {% endif %}
+        <form method="post" action="/schedules/{{ job.name }}/action" style="display:inline"
+              onsubmit="return confirm('Delete {{ job.name }}?')">
+          <input type="hidden" name="_action" value="delete">
+          <button class="btn btn--sm btn--danger">Delete</button>
+        </form>
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty">No pm2 cron jobs found.</p>
+  {% endif %}
+</section>
+
+{# ── n8n workflows ─────────────────────────────────────────────────────────── #}
+<section class="section">
+  <h3 style="display:flex;align-items:center;gap:8px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:12px;">
+    n8n Workflows
+    {% if not n8n_error %}<span class="kanban__count">{{ n8n_workflows | length }}</span>{% endif %}
+  </h3>
+
+  {% if n8n_error %}
+  <div class="n8n-config-notice">
+    <span>⚡ n8n integration not configured.</span>
+    <span class="subtitle">Set <code>N8N_API_KEY</code> env var on the taskmanager process to enable.</span>
+  </div>
+  {% elif not n8n_workflows %}
+  <p class="empty">No scheduled n8n workflows found.</p>
+  {% else %}
+  <div class="schedule-table">
+    <div class="schedule-header">
+      <span>Workflow</span>
+      <span>Status</span>
+      <span></span>
+    </div>
+    {% for wf in n8n_workflows %}
+    <div class="schedule-row">
+      <a href="{{ wf.url }}" target="_blank" class="schedule-name">{{ wf.name }}</a>
+      <span>
+        <span class="sched-badge sched-badge--{{ 'online' if wf.active else 'stopped' }}">
+          {{ 'active' if wf.active else 'inactive' }}
+        </span>
+      </span>
+      <span class="schedule-actions">
+        <form method="post" action="/schedules/n8n/{{ wf.id }}/action" style="display:inline">
+          <input type="hidden" name="_action" value="{{ 'deactivate' if wf.active else 'activate' }}">
+          <button class="btn btn--sm">{{ 'Deactivate' if wf.active else 'Activate' }}</button>
+        </form>
+        <a href="{{ wf.url }}" target="_blank" class="btn btn--sm">Edit ↗</a>
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+
+{# ── New job dialog ────────────────────────────────────────────────────────── #}
+<dialog id="newJobDialog">
+  <h2>New Scheduled Job</h2>
+  <form method="post" action="/schedules/new">
+    <label>
+      Name <small>(pm2 process name)</small>
+      <input name="name" placeholder="my-daily-task" required pattern="[a-zA-Z0-9_-]+">
+    </label>
+    <label>
+      Command / script path
+      <input name="script" placeholder="/Users/stephencummins/my-app/run.sh" required>
+    </label>
+    <label>
+      Cron expression
+      <input name="cron" placeholder="0 8 * * *" required>
+      <small style="color:var(--muted);font-size:11px">min hour day month weekday — e.g. <code>0 8 * * *</code> = 8am daily</small>
+    </label>
+    <div class="form-row" style="grid-template-columns:1fr 1fr">
+      <label>
+        Working directory <small>(optional)</small>
+        <input name="cwd" placeholder="/Users/stephencummins/my-app">
+      </label>
+      <label>
+        Interpreter
+        <select name="interpreter">
+          <option value="bash">bash</option>
+          <option value="node">node</option>
+          <option value="python3">python3</option>
+          <option value="none">none (binary)</option>
+        </select>
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit" class="btn btn--primary">Create Job</button>
+    </div>
+  </form>
+</dialog>
+
+{% endblock %}

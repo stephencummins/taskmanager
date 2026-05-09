@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Labels — TaskManager{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Labels</h1>
+  <button class="btn btn--primary" onclick="document.getElementById('new-label-modal').showModal()">
+    + New Label
+  </button>
+</div>
+
+{% if labels %}
+  <div class="label-grid">
+    {% for l in labels %}
+      <div class="label-row">
+        <span class="label-chip label-chip--lg" style="background: {{ l.color }}">{{ l.name }}</span>
+        <form method="post" action="/labels/{{ l.id }}/delete"
+              onsubmit="return confirm('Delete label \'{{ l.name }}\'?')">
+          <button type="submit" class="btn btn--sm btn--danger">Delete</button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="empty">No labels yet.</p>
+{% endif %}
+
+<dialog id="new-label-modal">
+  <form method="post" action="/labels/new">
+    <h2>New Label</h2>
+    <label>Name <input name="name" required autofocus></label>
+    <label>Colour <input type="color" name="color" value="#64748b"></label>
+    <div class="modal-actions">
+      <button type="button" onclick="this.closest('dialog').close()" class="btn">Cancel</button>
+      <button type="submit" class="btn btn--primary">Create</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}

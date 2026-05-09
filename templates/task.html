@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}{{ task.title }} — TaskManager{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header__left">
+    <a href="/projects/{{ project.id }}" class="back">← {{ project.name }}</a>
+    <h1>{{ task.title }}</h1>
+  </div>
+  <div class="page-header__actions">
+    <button class="btn btn--sm" onclick="document.getElementById('edit-task-modal').showModal()">Edit</button>
+  </div>
+</div>
+
+<div class="task-layout">
+  <!-- Main content -->
+  <div class="task-main">
+    {% if task.description %}
+      <section class="section">
+        <h3>Description</h3>
+        <p class="task-desc">{{ task.description }}</p>
+      </section>
+    {% endif %}
+
+    <!-- Labels -->
+    <section class="section" id="labels">
+      <h3>Labels</h3>
+      <div class="label-list">
+        {% for l in task.labels %}
+          <span class="label-chip label-chip--lg" style="background: {{ l.color }}">
+            {{ l.name }}
+            <form method="post" action="/tasks/{{ task.id }}/labels/{{ l.id }}/remove" style="display:inline">
+              <button type="submit" class="label-remove" title="Remove">×</button>
+            </form>
+          </span>
+        {% endfor %}
+        {% if available_labels %}
+          <form method="post" action="/tasks/{{ task.id }}/labels" class="inline-form">
+            <select name="label_id">
+              {% for l in available_labels %}
+                <option value="{{ l.id }}">{{ l.name }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn--sm">Add label</button>
+          </form>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- Comments -->
+    <section class="section" id="comments">
+      <h3>Comments ({{ comments|length }})</h3>
+      {% for c in comments %}
+        <div class="comment">
+          <div class="comment__header">
+            <strong>{{ c.author }}</strong>
+            <span class="comment__time">{{ c.created_at }}</span>
+            <form method="post" action="/comments/{{ c.id }}/delete" class="comment__delete">
+              <input type="hidden" name="task_id" value="{{ task.id }}">
+              <button type="submit" class="btn-icon" title="Delete comment">×</button>
+            </form>
+          </div>
+          <p class="comment__body">{{ c.body }}</p>
+        </div>
+      {% else %}
+        <p class="empty">No comments yet.</p>
+      {% endfor %}
+
+      <form method="post" action="/tasks/{{ task.id }}/comments" class="comment-form">
+        <input name="author" placeholder="Your name" value="Anonymous">
+        <textarea name="body" rows="3" placeholder="Write a comment…" required></textarea>
+        <button type="submit" class="btn btn--primary">Post Comment</button>
+      </form>
+    </section>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="task-sidebar">
+    <div class="meta-group">
+      <span class="meta-label">Status</span>
+      <form method="post" action="/tasks/{{ task.id }}">
+        <input type="hidden" name="_action" value="status">
+        <select name="status" onchange="this.form.submit()" class="status-select status--{{ task.status }}">
+          <option value="todo"        {% if task.status == 'todo' %}selected{% endif %}>To Do</option>
+          <option value="in_progress" {% if task.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+          <option value="done"        {% if task.status == 'done' %}selected{% endif %}>Done</option>
+        </select>
+      </form>
+    </div>
+    <div class="meta-group">
+      <span class="meta-label">Priority</span>
+      <span class="priority-badge priority-badge--{{ task.priority }}">{{ task.priority }}</span>
+    </div>
+    {% if task.due_date %}
+    <div class="meta-group">
+      <span class="meta-label">Due date</span>
+      <span>{{ task.due_date }}</span>
+    </div>
+    {% endif %}
+    <div class="meta-group">
+      <span class="meta-label">Created</span>
+      <span>{{ task.created_at }}</span>
+    </div>
+  </aside>
+</div>
+
+<!-- Edit task modal -->
+<dialog id="edit-task-modal">
+  <form method="post" action="/tasks/{{ task.id }}">
+    <h2>Edit Task</h2>
+    <label>Title <input name="title" value="{{ task.title }}" required></label>
+    <label>Description <textarea name="description" rows="4">{{ task.description }}</textarea></label>
+    <div class="form-row">
+      <label>Status
+        <select name="status">
+          <option value="todo"        {% if task.status == 'todo' %}selected{% endif %}>To Do</option>
+          <option value="in_progress" {% if task.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+          <option value="done"        {% if task.status == 'done' %}selected{% endif %}>Done</option>
+        </select>
+      </label>
+      <label>Priority
+        <select name="priority">
+          <option value="low"    {% if task.priority == 'low' %}selected{% endif %}>Low</option>
+          <option value="medium" {% if task.priority == 'medium' %}selected{% endif %}>Medium</option>
+          <option value="high"   {% if task.priority == 'high' %}selected{% endif %}>High</option>
+        </select>
+      </label>
+      <label>Due date
+        <input type="date" name="due_date" value="{{ task.due_date or '' }}">
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button type="button" onclick="this.closest('dialog').close()" class="btn">Cancel</button>
+      <button type="submit" class="btn btn--primary">Save</button>
+    </div>
+  </form>
+  <hr>
+  <form method="post" action="/tasks/{{ task.id }}"
+        onsubmit="return confirm('Delete this task?')">
+    <input type="hidden" name="_action" value="delete">
+    <button type="submit" class="btn btn--danger">Delete Task</button>
+  </form>
+</dialog>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} — TaskManager{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header__left">
+    <a href="/projects" class="back">← Projects</a>
+    <h1>
+      <span class="dot" style="background: {{ project.color }}"></span>
+      {{ project.name }}
+    </h1>
+    {% if project.description %}<p class="subtitle">{{ project.description }}</p>{% endif %}
+  </div>
+  <div class="page-header__actions">
+    <button class="btn btn--sm" onclick="document.getElementById('edit-project-modal').showModal()">Edit</button>
+    <button class="btn btn--sm btn--primary" onclick="document.getElementById('new-task-modal').showModal()">+ Task</button>
+  </div>
+</div>
+
+<!-- Kanban board -->
+<div class="kanban">
+  {% for col, tasks, label in [
+      ('todo',        todo,        'To Do'),
+      ('in_progress', in_progress, 'In Progress'),
+      ('done',        done,        'Done')
+  ] %}
+  <div class="kanban__col">
+    <div class="kanban__header">
+      <span class="kanban__label">{{ label }}</span>
+      <span class="kanban__count">{{ tasks|length }}</span>
+    </div>
+    {% for t in tasks %}
+      <a href="/tasks/{{ t.id }}" class="task-card priority--{{ t.priority }}">
+        <div class="task-card__title">{{ t.title }}</div>
+        <div class="task-card__meta">
+          {% if t.labels %}
+            <div class="task-card__labels">
+              {% for l in t.labels %}
+                <span class="label-chip" style="background: {{ l.color }}">{{ l.name }}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if t.due_date %}
+            <span class="task-card__due">Due {{ t.due_date }}</span>
+          {% endif %}
+          <span class="priority-badge priority-badge--{{ t.priority }}">{{ t.priority }}</span>
+        </div>
+      </a>
+    {% else %}
+      <p class="kanban__empty">Nothing here</p>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Edit project modal -->
+<dialog id="edit-project-modal">
+  <form method="post" action="/projects/{{ project.id }}">
+    <h2>Edit Project</h2>
+    <label>Name <input name="name" value="{{ project.name }}" required></label>
+    <label>Description <textarea name="description" rows="2">{{ project.description }}</textarea></label>
+    <label>Colour <input type="color" name="color" value="{{ project.color }}"></label>
+    <div class="modal-actions">
+      <button type="button" onclick="this.closest('dialog').close()" class="btn">Cancel</button>
+      <button type="submit" class="btn btn--primary">Save</button>
+    </div>
+  </form>
+  <hr>
+  <form method="post" action="/projects/{{ project.id }}"
+        onsubmit="return confirm('Delete project and all its tasks?')">
+    <input type="hidden" name="_action" value="delete">
+    <button type="submit" class="btn btn--danger">Delete Project</button>
+  </form>
+</dialog>
+
+<!-- New task modal -->
+<dialog id="new-task-modal">
+  <form method="post" action="/tasks/new">
+    <input type="hidden" name="project_id" value="{{ project.id }}">
+    <h2>New Task</h2>
+    <label>Title <input name="title" required autofocus></label>
+    <label>Description <textarea name="description" rows="3"></textarea></label>
+    <div class="form-row">
+      <label>Status
+        <select name="status">
+          <option value="todo">To Do</option>
+          <option value="in_progress">In Progress</option>
+          <option value="done">Done</option>
+        </select>
+      </label>
+      <label>Priority
+        <select name="priority">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+        </select>
+      </label>
+      <label>Due date <input type="date" name="due_date"></label>
+    </div>
+    <div class="modal-actions">
+      <button type="button" onclick="this.closest('dialog').close()" class="btn">Cancel</button>
+      <button type="submit" class="btn btn--primary">Create</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}
